@@ -25,10 +25,12 @@ int b = 0;
 int skin = 0;
 int delay = 0;
 
+int offset = 0;
+
 struct Snake
 {
 	int x, y;
-}  s[100];
+}  s[600];
 
 struct Fruit
 {
@@ -71,18 +73,41 @@ struct Danger
 	int x, y;
 } d[156];
 void setDanger() {
-	if (!b) return;
 	int i = 0;
-	for (int x = 4; x < 26; x++) {
-		for (int y = 1; y < 19; y++) {
-			if ((x < 8 || x > 21) && ((y > 3 && y < 8) || (y > 11 && y < 16))) {
-				if ((x == 7 || x == 22) && (y == 7 || y == 12)) continue;
+
+	if (!b) {
+		for (i; i < 156; i++) {
+			d[i].x = -1; d[i].y = -1;
+		}
+	}
+	else if (b == 1) {
+		for (int x = 4; x < 26; x++) {
+			for (int y = 1; y < 19; y++) {
+				if ((x < 8 || x > 21) && ((y > 3 && y < 8) || (y > 11 && y < 16))) {
+					if ((x == 7 || x == 22) && (y == 7 || y == 12)) continue;
+					d[i].x = x; d[i].y = y; i++;
+				}
+				else if (((x >= 8 && x < 13) || (x > 16 && x <= 21)) && (y < 7 || y > 12)) {
+					if ((x > 10 && x < 19) && (y > 3 && y < 16)) continue;
+					d[i].x = x; d[i].y = y; i++;
+				}
+			}
+		}
+	}
+	else if (b == 2) {
+		for (int y = 8; y < 12; y++) {
+			for (int x = 0; x < N; x++) {
+				if ((x > 4 && x < 7) || (x > 22 && x < 25)) continue;
 				d[i].x = x; d[i].y = y; i++;
 			}
-			else if (((x >= 8 && x < 13) || (x > 16 && x <= 21)) && (y < 7 || y > 12)) {
-				if ((x > 10 && x < 19) && (y > 3 && y < 16)) continue;
-				d[i].x = x; d[i].y = y; i++;
-			}
+		}
+		while (i < 156) {
+			d[i].x = -1; d[i].y = -1; i++;
+		}
+	}
+	else if (b == 3) {
+		for (i; i < 156; i++) {
+			d[i].x = -1; d[i].y = -1;
 		}
 	}
 }
@@ -98,7 +123,7 @@ void resetStats() {
 	s[0].x = 0;
 	s[0].y = 0;
 	f.x = 15;
-	f.y = 10;
+	f.y = 7;
 	dir = 0;
 	num = 1;
 }
@@ -120,7 +145,7 @@ bool confirm(sfRenderWindow* window) {
 }
 
 /* Draws Window */
-void loadBoard(sfRenderWindow* window, sfSprite* board, sfRectangleShape* square, sfSprite* head[4], sfText* length) {
+void loadBoard(sfRenderWindow* window, sfSprite* board, sfRectangleShape* square, sfSprite* snake[16], sfText* length) {
 	sfRenderWindow_clear(window, sfBlack);
 	sfVector2f pos;
 
@@ -130,15 +155,35 @@ void loadBoard(sfRenderWindow* window, sfSprite* board, sfRectangleShape* square
 	}
 
 	////// snake //////
-	pos.x = s[0].x * size; pos.y = s[0].y * size;
-	sfSprite_setPosition(head[dir], pos);
-	sfRenderWindow_drawSprite(window, head[dir], NULL);
+	pos.x = s[0].x * size; pos.y = s[0].y * size; // head
+	sfSprite_setPosition(snake[dir], pos);
+	sfRenderWindow_drawSprite(window, snake[dir], NULL);
 
-	sfRectangleShape_setFillColor(square, sfWhite);
-	for (int i = 1; i < num; i++) { // snake
+	offset = (offset + 1) % 2;
+	int snakeMapped[600];
+	int currentDir, lastDir = dir;
+	for (int i = 1; i < num; i++) {
+		if (s[i].x > s[i - 1].x && s[i].y == s[i - 1].y) currentDir = 1; // right
+		else if (s[i].x < s[i - 1].x && s[i].y == s[i - 1].y) currentDir = 2; // left
+		else if (s[i].x == s[i - 1].x && s[i].y > s[i - 1].y) currentDir = 3; // up
+		else if (s[i].x == s[i - 1].x && s[i].y < s[i - 1].y) currentDir = 0; // down
+
+		if (i < num - 1) snakeMapped[i] = 4 + (currentDir == 1 || currentDir == 2) * 2 + (i % 2 + offset) % 2; // 4-5 for vertical, 6-7 for horizontal
+		else snakeMapped[i] = 12 + currentDir;
+
+		if (currentDir != lastDir) {
+			if ((lastDir == 3 && currentDir == 1) || (lastDir == 2 && currentDir == 0)) snakeMapped[i - 1] = 11;
+			else if ((lastDir == 3 && currentDir == 2) || (lastDir == 1 && currentDir == 0)) snakeMapped[i - 1] = 10;
+			else if ((lastDir == 0 && currentDir == 2) || (lastDir == 1 && currentDir == 3)) snakeMapped[i - 1] = 9;
+			else if ((lastDir == 0 && currentDir == 1) || (lastDir == 2 && currentDir == 3)) snakeMapped[i - 1] = 8;
+		}
+
+		lastDir = currentDir;
+	}
+	for (int i = 1; i < num; i++) { // body
 		pos.x = s[i].x * size; pos.y = s[i].y * size;
-		sfRectangleShape_setPosition(square, pos);
-		sfRenderWindow_drawRectangleShape(window, square, NULL);
+		sfSprite_setPosition(snake[snakeMapped[i]], pos);
+		sfRenderWindow_drawSprite(window, snake[snakeMapped[i]], NULL);
 	}
 
 	////// food //////
@@ -155,8 +200,10 @@ void loadBoard(sfRenderWindow* window, sfSprite* board, sfRectangleShape* square
 	sfRenderWindow_display(window);
 }
 
-void drawSettingsText(sfRenderWindow* window, sfText* types[3], sfText* bTexts[2], sfText* sTexts[2], sfText* dTexts[2], int selects[3], int select) {
+void drawSettingsText(sfRenderWindow* window, sfText* settings, sfText* types[3], sfText* bTexts[2], sfText* sTexts[2], sfText* dTexts[2], int selects[3], int select) {
 	sfRenderWindow_clear(window, sfBlack);
+
+	sfRenderWindow_drawText(window, settings, NULL);
 
 	for (int i = 0; i < 3; i++) {
 		if (i == select) sfText_setStyle(types[i], sfTextUnderlined);
@@ -170,25 +217,30 @@ void drawSettingsText(sfRenderWindow* window, sfText* types[3], sfText* bTexts[2
 	
 	sfRenderWindow_display(window);
 }
-
-void loadSettings(sfRenderWindow* window, sfSprite* boards[2]) {
+void loadSettings(sfRenderWindow* window, sfSprite* boards[4], sfSprite* snakes[4]) {
 	sfVector2f pos;
-	sfFont* game = sfFont_createFromFile("../fonts/manaspc.ttf");
-	unsigned int textSize = 50;
+	sfFont* game = sfFont_createFromFile("../fonts/arcade.ttf");
+	unsigned int textSize = 70;
+
+	sfText* settings = sfText_create();
+	sfText_setFont(settings, game);
+	sfText_setCharacterSize(settings, 200);
+	pos.x = 375.0; pos.y = 40.0; sfText_setPosition(settings, pos);
+	sfText_setString(settings, "Settings");
 
 	sfText* types[3];
 	for (int i = 0; i < 3; i++) {
 		types[i] = sfText_create();
 		sfText_setFont(types[i], game);
 		sfText_setCharacterSize(types[i], textSize);
-		pos.x = 100.0; pos.y = 200.0f + 280.0f * i; sfText_setPosition(types[i], pos);
+		pos.x = 100.0; pos.y = 300.0f + 240.0f * i; sfText_setPosition(types[i], pos);
 	}
 	sfText_setString(types[0], "Map");
 	sfText_setString(types[1], "Snake");
 	sfText_setString(types[2], "Mode");
 
-	sfText* boardTexts[2]; pos.x = 400.0; pos.y = 200.0;
-	for (int i = 0; i < 2; i++) {
+	sfText* boardTexts[4]; pos.x = 400.0; pos.y = 300.0;
+	for (int i = 0; i < 4; i++) {
 		boardTexts[i] = sfText_create();
 		sfText_setFont(boardTexts[i], game);
 		sfText_setCharacterSize(boardTexts[i], textSize);
@@ -196,9 +248,11 @@ void loadSettings(sfRenderWindow* window, sfSprite* boards[2]) {
 	}
 	sfText_setString(boardTexts[0], "< Classic >");
 	sfText_setString(boardTexts[1], "<  Lava   >");
+	sfText_setString(boardTexts[2], "<  Water  >");
+	sfText_setString(boardTexts[3], "<  Terra  >");
 
-	sfText* snakeTexts[2]; pos.x = 400.0; pos.y = 480.0;
-	for (int i = 0; i < 2; i++) {
+	sfText* snakeTexts[4]; pos.x = 400.0; pos.y = 540.0;
+	for (int i = 0; i < 4; i++) {
 		snakeTexts[i] = sfText_create();
 		sfText_setFont(snakeTexts[i], game);
 		sfText_setCharacterSize(snakeTexts[i], textSize);
@@ -206,8 +260,10 @@ void loadSettings(sfRenderWindow* window, sfSprite* boards[2]) {
 	}
 	sfText_setString(snakeTexts[0], "< Classic >");
 	sfText_setString(snakeTexts[1], "<  Lava   >"); if (save.completedMaps[1] < 1) sfText_setFillColor(snakeTexts[1], sfRed);
+	sfText_setString(snakeTexts[2], "<  Water  >"); if (save.completedMaps[1] < 1) sfText_setFillColor(snakeTexts[2], sfRed);
+	sfText_setString(snakeTexts[3], "<  Terra  >"); if (save.completedMaps[1] < 1) sfText_setFillColor(snakeTexts[3], sfRed);
 
-	sfText* difficultyTexts[2]; pos.x = 400.0; pos.y = 760.0;
+	sfText* difficultyTexts[2]; pos.x = 400.0; pos.y = 780.0;
 	for (int i = 0; i < 2; i++) {
 		difficultyTexts[i] = sfText_create();
 		sfText_setFont(difficultyTexts[i], game);
@@ -222,7 +278,7 @@ void loadSettings(sfRenderWindow* window, sfSprite* boards[2]) {
 
 	sfEvent e;
 	while (1) {
-		drawSettingsText(window, types, boardTexts, snakeTexts, difficultyTexts, selects, select);
+		drawSettingsText(window, settings, types, boardTexts, snakeTexts, difficultyTexts, selects, select);
 
 		while (sfRenderWindow_pollEvent(window, &e)) {
 			if (e.type == sfEvtClosed) sfRenderWindow_close(window);
@@ -235,12 +291,14 @@ void loadSettings(sfRenderWindow* window, sfSprite* boards[2]) {
 					select = ((select - 1) % 3 + 3) % 3;
 				}
 				else if (sfKeyboard_isKeyPressed(sfKeyD)) { // right
-					selects[select] = (selects[select] + 1) % 2;
+					selects[select] = (selects[select] + 1) % 4;
 				}
 				else if (sfKeyboard_isKeyPressed(sfKeyA)) { // left
-					selects[select] = ((selects[select] - 1) % 2 + 2) % 2;
+					selects[select] = ((selects[select] - 1) % 4 + 4) % 4;
 				}
 				else if (sfKeyboard_isKeyPressed(sfKeyTab) || sfKeyboard_isKeyPressed(sfKeyEnter)) { // back
+					sfText_destroy(settings); for (int i = 0; i < 3; i++) sfText_destroy(types[i]); for (int i = 0; i < 4; i++) { sfText_destroy(boardTexts[i]); sfText_destroy(snakeTexts[i]); } for (int i = 0; i < 2; i++) sfText_destroy(difficultyTexts[i]);
+
 					b = selects[0]; skin = selects[1]; delay = selects[2];
 					setDanger();
 					return;
@@ -300,8 +358,10 @@ void drawStartSprites(sfRenderWindow* window, sfSprite* background, sfSprite* sp
 		scalePositions[i] = pos;
 	}
 	drawScaledSprites(window, select, sprites, borders, scaleSize, noScaleSize, scalePositions, noScalePositions);
+
+	sfTexture_destroy(border3Tx); sfTexture_destroy(border2Tx); sfTexture_destroy(border1Tx); sfSprite_destroy(border3); sfSprite_destroy(border2); sfSprite_destroy(border1);
 }
-void loadStartScreen(sfRenderWindow* window, sfText* startText, sfSprite* boards[2]) {
+void loadStartScreen(sfRenderWindow* window, sfText* startText, sfSprite* boards[4], sfSprite* snakes[4]) {
 	sfTexture* snakeTx = sfTexture_createFromFile("../images/snake.jpeg", NULL);
 	sfSprite* snake = sfSprite_create(); sfSprite_setTexture(snake, snakeTx, sfFalse);
 
@@ -357,9 +417,9 @@ void loadStartScreen(sfRenderWindow* window, sfText* startText, sfSprite* boards
 				}
 				else if (sfKeyboard_isKeyPressed(sfKeyEnter)) { // confirm
 					switch (select) {
-					case 0: return; // start
-					case 1: loadSettings(window, boards); break; // settings
-					case 2: return; // highscores
+					case 0: sfTexture_destroy(snakeTx); sfTexture_destroy(startTx); sfTexture_destroy(settingsTx); sfTexture_destroy(highScoresTx); sfSprite_destroy(snake); sfSprite_destroy(start); sfSprite_destroy(settings); sfSprite_destroy(highScores); return; // start
+					case 1: loadSettings(window, boards, snakes); break; // settings
+					case 2: break; // highscores
 					}
 				}
 			}
@@ -391,8 +451,10 @@ void drawEndSprites(sfRenderWindow* window, sfSprite* background, sfSprite* spri
 		scalePositions[i] = pos;
 	}
 	drawScaledSprites(window, select, sprites, borders, scaleSize, noScaleSize, scalePositions, noScalePositions);
+
+	sfTexture_destroy(borderTx); sfSprite_destroy(border);
 }
-void loadEndScreen(sfRenderWindow* window, sfSprite* boards[2]) {
+void loadEndScreen(sfRenderWindow* window, sfSprite* boards[4], sfSprite* snakes[4]) {
 	sfTexture* gameOverTx = sfTexture_createFromFile("../images/gameover.png", NULL);
 	sfSprite* gameOver = sfSprite_create(); sfSprite_setTexture(gameOver, gameOverTx, sfFalse);
 	sfVector2f pos; pos.x = 285.0; pos.y = 50.0; sfSprite_setPosition(gameOver, pos);
@@ -426,8 +488,8 @@ void loadEndScreen(sfRenderWindow* window, sfSprite* boards[2]) {
 				}
 				else if (sfKeyboard_isKeyPressed(sfKeyEnter)) { // confirm
 					switch (select) {
-					case 0: return; // retry
-					case 1: loadStartScreen(window, NULL, boards); return; // menu
+					case 0: sfTexture_destroy(gameOverTx); sfTexture_destroy(retryTx); sfTexture_destroy(menuTx); sfTexture_destroy(highScoresTx); sfSprite_destroy(gameOver); sfSprite_destroy(retry); sfSprite_destroy(menu); sfSprite_destroy(highScores); return; // retry
+					case 1: sfTexture_destroy(gameOverTx); sfTexture_destroy(retryTx); sfTexture_destroy(menuTx); sfTexture_destroy(highScoresTx); sfSprite_destroy(gameOver); sfSprite_destroy(retry); sfSprite_destroy(menu); sfSprite_destroy(highScores); loadStartScreen(window, NULL, boards, snakes); return; // menu
 					case 2: return; // highscores
 					}
 				}
@@ -497,7 +559,13 @@ int main() {
 	////// sprites //////
 	sfTexture* boardLavaTx = sfTexture_createFromFile("../images/board1.jpeg", NULL);
 	sfSprite* boardLava = sfSprite_create(); sfSprite_setTexture(boardLava, boardLavaTx, sfFalse);
-	sfSprite* boards[2] = { NULL, boardLava };
+	sfTexture* boardWaterTx = sfTexture_createFromFile("../images/board2.jpeg", NULL);
+	sfSprite* boardWater = sfSprite_create(); sfSprite_setTexture(boardWater, boardWaterTx, sfFalse);
+	sfTexture* boardTerraTx = sfTexture_createFromFile("../images/board3.jpeg", NULL);
+	sfSprite* boardTerra = sfSprite_create(); sfSprite_setTexture(boardTerra, boardTerraTx, sfFalse);
+	sfSprite* boards[4] = { NULL, boardLava, boardWater, boardTerra };
+
+	sfSprite* snakes[4] = { NULL, NULL, NULL, NULL };
 
 	sfTexture* head0Tx = sfTexture_createFromFile("../images/head0.png", NULL);
 	sfSprite* head0 = sfSprite_create(); sfSprite_setTexture(head0, head0Tx, sfFalse);
@@ -507,7 +575,32 @@ int main() {
 	sfSprite* head2 = sfSprite_create(); sfSprite_setTexture(head2, head2Tx, sfFalse);
 	sfTexture* head3Tx = sfTexture_createFromFile("../images/head3.png", NULL);
 	sfSprite* head3 = sfSprite_create(); sfSprite_setTexture(head3, head3Tx, sfFalse);
-	sfSprite* head[4] = { head0, head1, head2, head3 };
+	sfTexture* tailLVertTx = sfTexture_createFromFile("../images/tailLVert.png", NULL);
+	sfSprite* tailLVert = sfSprite_create(); sfSprite_setTexture(tailLVert, tailLVertTx, sfFalse);
+	sfTexture* tailRVertTx = sfTexture_createFromFile("../images/tailRVert.png", NULL);
+	sfSprite* tailRVert = sfSprite_create(); sfSprite_setTexture(tailRVert, tailRVertTx, sfFalse);
+	sfTexture* tailLHorTx = sfTexture_createFromFile("../images/tailLHor.png", NULL);
+	sfSprite* tailLHor = sfSprite_create(); sfSprite_setTexture(tailLHor, tailLHorTx, sfFalse);
+	sfTexture* tailRHorTx = sfTexture_createFromFile("../images/tailRHor.png", NULL);
+	sfSprite* tailRHor = sfSprite_create(); sfSprite_setTexture(tailRHor, tailRHorTx, sfFalse);
+	sfTexture* edge0Tx = sfTexture_createFromFile("../images/edge0.png", NULL);
+	sfSprite* edge0 = sfSprite_create(); sfSprite_setTexture(edge0, edge0Tx, sfFalse);
+	sfTexture* edge1Tx = sfTexture_createFromFile("../images/edge1.png", NULL);
+	sfSprite* edge1 = sfSprite_create(); sfSprite_setTexture(edge1, edge1Tx, sfFalse);
+	sfTexture* edge2Tx = sfTexture_createFromFile("../images/edge2.png", NULL);
+	sfSprite* edge2 = sfSprite_create(); sfSprite_setTexture(edge2, edge2Tx, sfFalse);
+	sfTexture* edge3Tx = sfTexture_createFromFile("../images/edge3.png", NULL);
+	sfSprite* edge3 = sfSprite_create(); sfSprite_setTexture(edge3, edge3Tx, sfFalse);
+	sfTexture* tailB0Tx = sfTexture_createFromFile("../images/tailB0.png", NULL);
+	sfSprite* tailB0 = sfSprite_create(); sfSprite_setTexture(tailB0, tailB0Tx, sfFalse);
+	sfTexture* tailB1Tx = sfTexture_createFromFile("../images/tailB1.png", NULL);
+	sfSprite* tailB1 = sfSprite_create(); sfSprite_setTexture(tailB1, tailB1Tx, sfFalse);
+	sfTexture* tailB2Tx = sfTexture_createFromFile("../images/tailB2.png", NULL);
+	sfSprite* tailB2 = sfSprite_create(); sfSprite_setTexture(tailB2, tailB2Tx, sfFalse);
+	sfTexture* tailB3Tx = sfTexture_createFromFile("../images/tailB3.png", NULL);
+	sfSprite* tailB3 = sfSprite_create(); sfSprite_setTexture(tailB3, tailB3Tx, sfFalse);
+	sfSprite* snake[16] = { head0, head1, head2, head3, tailLVert, tailRVert, tailLHor, tailRHor, edge0, edge1, edge2, edge3, tailB0, tailB1, tailB2, tailB3 };
+	
 
 	////// text //////
 	sfFont* game = sfFont_createFromFile("../fonts/manaspc.ttf");
@@ -520,7 +613,7 @@ int main() {
 	double timer = 0.0;
 
 	resetStats();
-	loadStartScreen(window, start, boards);
+	loadStartScreen(window, start, boards, snakes);
 	while (sfRenderWindow_isOpen(window)) {
 		sfEvent e;
 
@@ -540,10 +633,10 @@ int main() {
 		if (timer > 0.1 - delay * 0.025) { // run Tick
 			timer = 0;
 			if (!Tick()) {
-				loadEndScreen(window, boards);
+				loadEndScreen(window, boards, snakes);
 				resetStats();
 			}
-			loadBoard(window, boards[b], square, head, length);
+			loadBoard(window, boards[b], square, snake, length);
 		}
 	}
 	return 0;
