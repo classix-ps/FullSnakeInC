@@ -28,6 +28,26 @@ int mode = 0;
 
 int offset = 0;
 
+int di[2];
+int lastDi() {
+	if (di[0] == -1)
+		return 0;
+	else if (di[1] == -1)
+		return 1;
+	else
+		return 2;
+}
+bool validDir(int refDir, int testDir) {
+	if (testDir == -1 || refDir == -1)
+		return false;
+	else if ((testDir == 0 || testDir == 3) && (refDir == 0 || refDir == 3))
+		return false;
+	else if ((testDir == 1 || testDir == 2) && (refDir == 1 || refDir == 2))
+		return false;
+	else
+		return true;
+}
+
 struct Snake
 {
 	int x, y;
@@ -212,6 +232,7 @@ void resetStats() {
 	pPort.x = -2;
 	pPort.time = 0;
 	dir = 0;
+	di[0] = -1; di[1] = -1;
 	num = 1;
 	totalTime = 0.0;
 }
@@ -227,13 +248,13 @@ void loadBoard(sfRenderWindow* window, sfSprite* board, sfSprite* fruit, sfSprit
 
 	////// snake //////
 	pos.x = s[0].x * size; pos.y = s[0].y * size; // head
-	sfSprite_setPosition(snake[16* skin + dir], pos);
+	sfSprite_setPosition(snake[16 * skin + dir], pos);
 	sfRenderWindow_drawSprite(window, snake[16 * skin + dir], NULL);
 
 	int snakeMapped[600];
 	int currentDir = dir, lastDir = dir;
 	for (int i = 1; i < num; i++) {
-		if (s[i].x > s[i - 1].x && s[i].y == s[i - 1].y) currentDir = 1; // right
+		if (s[i].x > s[i - 1].x&& s[i].y == s[i - 1].y) currentDir = 1; // right
 		else if (s[i].x < s[i - 1].x && s[i].y == s[i - 1].y) currentDir = 2; // left
 		else if (s[i].x == s[i - 1].x && s[i].y > s[i - 1].y) currentDir = 3; // up
 		else if (s[i].x == s[i - 1].x && s[i].y < s[i - 1].y) currentDir = 0; // down
@@ -404,7 +425,7 @@ void drawSettingsText(sfRenderWindow* window, sfSprite* boards[4], sfSprite* sna
 	sfVector2f pos; pos.x = 750.0; pos.y = 230.0; sfSprite_setPosition(displayMap, pos);
 	sfRenderWindow_drawSprite(window, displayMap, NULL);
 	sfSprite_destroy(displayMap);
-	
+
 	// completed
 	sfText* normal = sfText_copy(dTexts[0]);
 	sfText_setCharacterSize(normal, 30);
@@ -435,7 +456,7 @@ void drawSettingsText(sfRenderWindow* window, sfSprite* boards[4], sfSprite* sna
 
 	// mode
 	sfRenderWindow_drawText(window, modeTexts[selects[2]], NULL);
-	
+
 	sfRenderWindow_display(window);
 }
 bool loadSettings(sfRenderWindow* window, sfSprite* boards[4], sfSprite* snakes[4], sfText* modeTexts[3]) {
@@ -477,7 +498,7 @@ bool loadSettings(sfRenderWindow* window, sfSprite* boards[4], sfSprite* snakes[
 		snakeTexts[i] = sfText_create();
 		sfText_setFont(snakeTexts[i], game);
 		sfText_setCharacterSize(snakeTexts[i], textSize);
-        sfText_setPosition(snakeTexts[i], pos);
+		sfText_setPosition(snakeTexts[i], pos);
 	}
 	sfText_setString(snakeTexts[0], "<  Classic  >");
 	sfText_setString(snakeTexts[1], "<   Lava   >"); if (save.completedMaps[1] < 1) sfText_setFillColor(snakeTexts[1], sfRed);
@@ -656,7 +677,7 @@ bool loadStartScreen(sfRenderWindow* window, sfText* startText, sfSprite* boards
 	int select = 0;
 	while (1) {
 		drawStartSprites(window, snake, startScreenSprites, select);
-		
+
 		while (sfRenderWindow_pollEvent(window, &e)) {
 			if (e.type == sfEvtClosed) { sfRenderWindow_close(window); return false; }
 
@@ -746,7 +767,7 @@ bool loadEndScreen(sfRenderWindow* window, sfSprite* boards[4], sfSprite* snakes
 					select = (select + 1) % 3;
 				}
 				else if (sfKeyboard_isKeyPressed(sfKeyW)) { // up
-					select = ((select -1) % 3 + 3) % 3;
+					select = ((select - 1) % 3 + 3) % 3;
 				}
 				else if (sfKeyboard_isKeyPressed(sfKeyEnter)) { // confirm
 					switch (select) {
@@ -778,10 +799,16 @@ bool Tick() {
 	}
 
 	////// direction //////
+	if (di[0] != -1) {
+		dir = di[0];
+		di[0] = di[1];
+		di[1] = -1;
+	}
+
 	if (dir == 0) s[0].y += 1;
-	if (dir == 1) s[0].x -= 1;
-	if (dir == 2) s[0].x += 1;
-	if (dir == 3) s[0].y -= 1;
+	else if (dir == 1) s[0].x -= 1;
+	else if (dir == 2) s[0].x += 1;
+	else if (dir == 3) s[0].y -= 1;
 
 	////// rules //////
 	if (s[0].x >= N || s[0].x < 0 || s[0].y >= M || s[0].y < 0) { // out of bounds
@@ -920,7 +947,7 @@ void runSnake() {
 
 	sfTexture* powerTx = sfTexture_createFromFile("../images/power.png", NULL);
 	sfSprite* power = sfSprite_create(); sfSprite_setTexture(power, powerTx, sfFalse);
-	
+
 	sfTexture* portal0Tx = sfTexture_createFromFile("../images/portal0.png", NULL);
 	sfSprite* portal0 = sfSprite_create(); sfSprite_setTexture(portal0, portal0Tx, sfFalse);
 	sfTexture* portal1Tx = sfTexture_createFromFile("../images/portal1.png", NULL);
@@ -1133,10 +1160,23 @@ void runSnake() {
 
 		while (sfRenderWindow_pollEvent(window, &e)) { if (e.type == sfEvtClosed) { sfRenderWindow_close(window); return; } }
 
-		if (sfKeyboard_isKeyPressed(sfKeyA) && dir != 2) dir = 1;
-		else if (sfKeyboard_isKeyPressed(sfKeyD) && dir != 1) dir = 2;
-		else if (sfKeyboard_isKeyPressed(sfKeyW) && dir != 0) dir = 3;
-		else if (sfKeyboard_isKeyPressed(sfKeyS) && dir != 3) dir = 0;
+		int dPos = lastDi();
+		if (sfKeyboard_isKeyPressed(sfKeyA) && dPos < 2) {
+			if ((dPos == 0 && validDir(dir, 1)) || (dPos == 1 && validDir(di[0], 1)))
+				di[dPos] = 1;
+		}
+		else if (sfKeyboard_isKeyPressed(sfKeyD) && dPos < 2) {
+			if ((dPos == 0 && validDir(dir, 2)) || (dPos == 1 && validDir(di[0], 2)))
+				di[dPos] = 2;
+		}
+		else if (sfKeyboard_isKeyPressed(sfKeyW) && dPos < 2) {
+			if ((dPos == 0 && validDir(dir, 3)) || (dPos == 1 && validDir(di[0], 3)))
+				di[dPos] = 3;
+		}
+		else if (sfKeyboard_isKeyPressed(sfKeyS) && dPos < 2) {
+			if ((dPos == 0 && validDir(dir, 3)) || (dPos == 1 && validDir(di[0], 3)))
+				di[dPos] = 0;
+		}
 
 		if (timer > 0.1 - 0.02 * (mode == 1)) { // run Tick
 			totalTime += timer;
