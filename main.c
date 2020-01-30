@@ -886,6 +886,10 @@ bool Tick() {
 			s[0].x = pPort.x + xOffset;
 			s[0].y = pPort.y + yOffset;
 
+			for (int i = 1; i < num; i++) { // set rest of body outside of board
+				s[i].x = -1; s[i].y = -1;
+			}
+
 			while (onSnake(f.x, f.y, 0) || onDanger(f.x, f.y) || (p.x == f.x && p.y == f.y)) {
 				f.x = rand() % N;
 				f.y = rand() % M;
