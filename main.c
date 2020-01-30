@@ -231,6 +231,7 @@ void resetStats() {
 	pPort.x = -2;
 	pPort.x = -2;
 	pPort.time = 0;
+	pPort.open = false;
 	dir = 0;
 	di[0] = -1; di[1] = -1;
 	num = 1;
@@ -842,7 +843,7 @@ bool Tick() {
 
 		if (mode == 2) {
 			srand((unsigned int)time(NULL));
-			if (!(rand() % 1) && !p.time && !(pPort.open || pPort.time)) { // spawn powerup at 20% chance per fruit, as long as no portal is open
+			if (!(rand() % 5) && !p.time && !(pPort.open || pPort.time)) { // spawn powerup at 20% chance per fruit, as long as no portal is open
 				p.x = rand() % N;
 				p.y = rand() % M;
 				while (onSnake(p.x, p.y, 0) || onDanger(p.x, p.y) || (p.x == f.x && p.y == f.y)) {
