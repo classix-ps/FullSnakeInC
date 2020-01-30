@@ -394,8 +394,11 @@ bool loadHighScores(sfRenderWindow* window, int firstOpen) {
 				}
 				else if (sfKeyboard_isKeyPressed(sfKeyTab)) { // back
 					sfFont_destroy(game); sfFont_destroy(data); sfTexture_destroy(highScoreTx); sfSprite_destroy(highScore); sfText_destroy(highScores); for (int i = 0; i < 9; i++) sfText_destroy(mapMode[i]); for (int i = 0; i < 3; i++) sfText_destroy(lenTime[i]);
-
 					return true;
+				}
+				else if (sfKeyboard_isKeyPressed(sfKeyEscape)) {
+					sfRenderWindow_close(window);
+					return false;
 				}
 			}
 		}
@@ -573,6 +576,10 @@ bool loadSettings(sfRenderWindow* window, sfSprite* boards[4], sfSprite* snakes[
 					b = selects[0]; skin = selects[1]; mode = selects[2];
 					setDanger();
 					return true;
+				}
+				else if (sfKeyboard_isKeyPressed(sfKeyEscape)) {
+					sfRenderWindow_close(window);
+					return false;
 				}
 			}
 		}
@@ -776,6 +783,10 @@ bool loadEndScreen(sfRenderWindow* window, sfSprite* boards[4], sfSprite* snakes
 					case 2: if (!loadHighScores(window, mode == 2 ? 8 : 2 * b + mode)) return false; break; // highscores
 					}
 				}
+				else if (sfKeyboard_isKeyPressed(sfKeyEscape)) {
+					sfRenderWindow_close(window);
+					return false;
+				}
 			}
 		}
 	}
@@ -831,7 +842,7 @@ bool Tick() {
 
 		if (mode == 2) {
 			srand((unsigned int)time(NULL));
-			if (!(rand() % 5) && !p.time && !(pPort.open || pPort.time)) { // spawn powerup at 20% chance per fruit, as long as no portal is open
+			if (!(rand() % 1) && !p.time && !(pPort.open || pPort.time)) { // spawn powerup at 20% chance per fruit, as long as no portal is open
 				p.x = rand() % N;
 				p.y = rand() % M;
 				while (onSnake(p.x, p.y, 0) || onDanger(p.x, p.y) || (p.x == f.x && p.y == f.y)) {
